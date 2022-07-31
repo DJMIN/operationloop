@@ -12,7 +12,6 @@ from operationloop.core.mouseutils import mouse_ctl_1, mouse_ctl
 from operationloop.core.winhooktask import HookManager
 from multiprocessing import Pipe
 
-
 MOUSE_SCREEN_SAVE_PATH = 'mouse_screen'
 SHORT_CUT_KEY = 'F12'
 
@@ -30,7 +29,7 @@ class Command:
     def params_loads(params):
         new_params = []
         for param in params:
-            new_params.append(param)
+            new_params.append(str(param))
         return new_params
 
     @property
@@ -132,6 +131,10 @@ class Command:
         float_str = f'{self.time_offset_float:.6f}'.split('.')[-1]
         return f"{self.device:2s} {self.time_offset_int:07d}.{float_str} " \
                f"{self.params_format} {self.WINDOWS_FLAG}{self.windows}"
+
+    def __repr__(self):
+        return f"device:{self.device:2s} time:{self.time_offset_float:.3f} " \
+               f"{repr(self.params_format)} {self.WINDOWS_FLAG}{self.windows}"
 
     def loads(self, string: str):
         tmp, windows = string.strip().split(self.WINDOWS_FLAG, maxsplit=1)
@@ -235,17 +238,39 @@ class CommandList:
     def clear(self):
         return self.data_list.clear()
 
-    def add(self, device, params, windows, time_offset=0, rgb=()):
+    def add(self, device, params, windows, time_offset=0.0, rgb=()):
         self.time_offset_this = self.time_offset_last + time_offset if time_offset else time.time() - self.start_time
         command = Command(device, params + (list(rgb) if rgb else []), self.time_offset_this, windows)
         self.data_list.append(command)
         self.time_offset_last = self.time_offset_this
         return command
 
-    def add_mouse_auto(self, action, position=(), rgb=(), windows='', wheel_int=0):
+    def add_mouse_auto(self, action: int, position=(), rgb=(), windows='', wheel_int=0):
+        """
+            pyWinhook.HookConstants.WM_MOUSEFIRST,  # 0x0200
+            pyWinhook.HookConstants.WM_MOUSEMOVE,  # 0x0200
+            pyWinhook.HookConstants.WM_LBUTTONDOWN,  # 0x0201
+            pyWinhook.HookConstants.WM_LBUTTONUP,  # 0x0202
+            pyWinhook.HookConstants.WM_RBUTTONDOWN,  # 0x0204
+            pyWinhook.HookConstants.WM_RBUTTONUP,  # 0x0205
+            pyWinhook.HookConstants.WM_MBUTTONDOWN,  # 0x0207
+            pyWinhook.HookConstants.WM_MBUTTONUP,  # 0x0208
+            pyWinhook.HookConstants.WM_MOUSEWHEEL,  # 0x020A
+        """
         return self.add(
             Constant.Mouse, [action, *(position or mouse_ctl_1.get_position()), wheel_int],
             rgb=rgb, windows=windows)
+
+    def add_mouse_click_auto(self, x, y, time_offset=0.07, rgb=(), windows='', wheel_int=0):
+        position = (x, y)
+        self.add(
+            Constant.Mouse,
+            [pyWinhook.HookConstants.WM_LBUTTONDOWN, *(position or mouse_ctl_1.get_position()), wheel_int],
+            rgb=rgb, windows=windows, time_offset=time_offset)
+        self.add(
+            Constant.Mouse,
+            [pyWinhook.HookConstants.WM_LBUTTONUP, *(position or mouse_ctl_1.get_position()), wheel_int],
+            rgb=rgb, windows=windows, time_offset=0.02)
 
     def add_key_auto(self, action, key_string, scan_code=0, windows=''):
         return self.add(Constant.Keyboard, [action, key_string, scan_code], windows=windows)
@@ -278,7 +303,7 @@ class CommandList:
         self.is_running = True
         keyboard.hook_key(SHORT_CUT_KEY.lower(), self.stop)
 
-        print(f'脚本已开始：{os.path.realpath(self.path)}')
+        print(f'脚本已开始：{os.path.realpath(self.path)}: len:{len(self.data_list)}')
         now_idx = 0
         for idx, command in enumerate(self.data_list):
             now_idx = idx + 1
@@ -287,7 +312,7 @@ class CommandList:
             time_sleep = max(0.0, command.time_offset - (time.time() - self.s_time))
             if time_sleep > 0:
                 time.sleep(time_sleep)
-            # print(f'{idx}-------{command}-  {time_sleep}')
+            print(f'{idx}-------{repr(command)}-  {time_sleep}s')
             command.play(skip_move=self.skip_move)
 
             # command[2]代表此操作距离开始操作所经过的时间,用它减去已经经过的时间就是距离下一次操作的时间
@@ -308,7 +333,7 @@ class CommandList:
                 self.last_time_img = time.time()
                 rgb = get_screen_color(x, y)
                 screen_listen.save_gif_async(
-                # put_queue(
+                    # put_queue(
                     f'{len(self.data_list) + 1}', x, y, file_path=MOUSE_SCREEN_SAVE_PATH, rgb=rgb)
             else:
                 rgb = ()
@@ -369,17 +394,8 @@ class CommandList:
             self.stop_recode()
 
 
-if __name__ == '__main__':
+def eg_base():
     com_list = CommandList()
-    # com_list.add(Constant.Mouse, [Constant.MOUSE_LEFT_DOWN, 120, 120], 'window1')
-    # com_list.add(Constant.Mouse, [Constant.MOUSE_LEFT_DOWN, 120, 120], 'window2')
-    # time.sleep(1)
-    # com_list.add(Constant.Mouse, [Constant.MOUSE_LEFT_DOWN, 120, 120], 'window3')
-    # time.sleep(1)
-    # com_list.add(Constant.Mouse, [Constant.MOUSE_LEFT_DOWN, 120, 120], 'window4')
-    # com_list.add(Constant.Mouse, [Constant.MOUSE_LEFT_DOWN, 120, 120], 'window4', time_offset=1)
-    # com_list.add(Constant.Mouse, [Constant.MOUSE_LEFT_DOWN, 120, 120], 'window4', time_offset=1)
-    # com_list.add(Constant.Mouse, [Constant.MOUSE_LEFT_DOWN, 120, 120], 'window4', time_offset=1)
     print('starting recode')
     com_list.recode()
     com_list.dump()
@@ -387,6 +403,67 @@ if __name__ == '__main__':
     com_list = CommandList()
     com_list.load()
     com_list.replay()
+
+
+def eg_base_skip():
+    com_list = CommandList(skip_move=True)
+    print('starting recode')
+    com_list.recode()
+    com_list.dump()
+    print('starting replay')
+    com_list = CommandList()
+    com_list.load()
+    com_list.replay()
+
+
+def eg_base_run():
+    com_list = CommandList(skip_move=False)
+    print('starting replay')
+    # com_list.load()
+
+    def bit_1(_idx):
+        return [
+            (1944, 881),
+            (1980, 883),
+            (2010, 883),
+            (2043, 877),
+            (2074, 884),
+            (2107, 886),
+            (2142, 877),
+            (2170, 881),
+        ][_idx]
+
+    def _down(_bit, num):
+        com_list.add_mouse_click_auto(*bit_1(_bit))
+        for _i in range(int(num)):
+            com_list.add_mouse_click_auto(1971, 814)
+
+    def _ok():
+        com_list.add_mouse_click_auto(2123, 816)
+
+    def add(_bit, num):
+        com_list.add_mouse_click_auto(*bit_1(_bit))
+        for _i in range(int(num)):
+            com_list.add_mouse_click_auto(2039, 815)
+    malast= '12349876'
+
+    manew = '23512547'
+    for bit, ch in enumerate(malast):
+        _down(bit, ch)
+
+    for bit, ch in enumerate(manew):
+        add(bit, ch)
+
+    _ok()
+
+    com_list.dump()
+    com_list.replay()
+
+
+if __name__ == '__main__':
+    # eg_base()
+    # eg_base_skip()
+    eg_base_run()
 
     # print(com_list)
     # print(repr(com_list))
