@@ -16,8 +16,6 @@ from multiprocessing import Pipe
 MOUSE_SCREEN_SAVE_PATH = 'mouse_screen'
 SHORT_CUT_KEY = 'F12'
 
-pread, pwrite = Pipe(duplex=False)
-
 
 class Command:
     WINDOWS_FLAG = '|wiN|'
@@ -203,7 +201,7 @@ def format_path(path):
 
 
 class CommandList:
-    def __init__(self, path='command.txt'):
+    def __init__(self, path='command.txt', pwrite=None, wqueue=None):
         self.s_time = 0
         self.path = format_path(path)
         self.data_list: typing.List[Command] = []
@@ -214,6 +212,8 @@ class CommandList:
         self.hook_listener = None
         # self.skip_move = True
         self.skip_move = False
+        self.pwrite = pwrite
+        self.wqueue = wqueue
         self.last_time_img = 0
         self.keys_mapping = {}
         self.keys_mapping1 = {}
@@ -237,8 +237,10 @@ class CommandList:
 
     def add(self, device, params, windows, time_offset=0, rgb=()):
         self.time_offset_this = self.time_offset_last + time_offset if time_offset else time.time() - self.start_time
-        self.data_list.append(Command(device, params + (list(rgb) if rgb else []), self.time_offset_this, windows))
+        command = Command(device, params + (list(rgb) if rgb else []), self.time_offset_this, windows)
+        self.data_list.append(command)
         self.time_offset_last = self.time_offset_this
+        return command
 
     def add_mouse_auto(self, action, position=(), rgb=(), windows='', wheel_int=0):
         return self.add(
@@ -257,6 +259,7 @@ class CommandList:
         with open(self.path, 'w', encoding='utf-8') as f:
             for command in self.data_list:
                 f.write(f'{command}\n')
+        print(f'脚本文件已保存：{os.path.realpath(self.path)}')
 
     def stop_recode(self, use_ui=False):
         self.hook_listener.close(use_ui)
@@ -274,6 +277,8 @@ class CommandList:
         self.s_time = time.time()
         self.is_running = True
         keyboard.hook_key(SHORT_CUT_KEY.lower(), self.stop)
+
+        print(f'脚本已开始：{os.path.realpath(self.path)}')
         now_idx = 0
         for idx, command in enumerate(self.data_list):
             now_idx = idx + 1
@@ -301,23 +306,29 @@ class CommandList:
         if event.Message not in [pyWinhook.HookConstants.WM_MOUSEMOVE]:
             if (time.time() - self.last_time_img) > 0.3:
                 self.last_time_img = time.time()
-                rgb = get_screen_color(x, y)
+                # rgb = get_screen_color(x, y)
+                rgb = ()
                 screen_listen.save_gif_async(
                 # put_queue(
                     f'{len(self.data_list) + 1}', x, y, file_path=MOUSE_SCREEN_SAVE_PATH, rgb=rgb)
             else:
                 rgb = ()
-            self.add_mouse_auto(
+            command = self.add_mouse_auto(
                 event.Message,
                 # event.MessageName.replace(' ', ''),
                 (x, y),
                 rgb=rgb, windows=event.WindowName, wheel_int=event.Wheel)
         elif not self.skip_move:
-            self.add_mouse_auto(
+            command = self.add_mouse_auto(
                 event.Message,
                 # event.MessageName.replace(' ', ''),
                 (x, y), windows=event.WindowName)
-
+        else:
+            command = None
+        if self.pwrite:
+            self.pwrite.send(str(command))
+        if self.wqueue:
+            self.wqueue.put(str(command))
         return True
 
     # def append_log(self, string):
@@ -326,14 +337,20 @@ class CommandList:
 
     def on_key_event(self, event: pyWinhook.KeyboardEvent):
         if event.ScanCode == keyboradutils.KEY_2_SCAN_CODE[SHORT_CUT_KEY]:
+            command = None
             self.stop_recode()
         else:
             # if event.Message in [256, 260]:
             #     print(f'{str(event.Message)}\t{event.ScanCode}\t{event.Key}')
-            self.add_key_auto(
+            command = self.add_key_auto(
                 KeyboardEventType.KEY_UP if event.Message in [256, 260] else KeyboardEventType.KEY_DOWN,
                 event.Key, scan_code=event.ScanCode, windows=event.WindowName
             )
+
+        if self.pwrite:
+            self.pwrite.send(str(command))
+        if self.wqueue:
+            self.wqueue.put(str(command))
         return True
 
     def recode(self, block=True):
@@ -349,6 +366,8 @@ class CommandList:
 
         while block and self.is_running:
             time.sleep(1)
+        if block:
+            self.stop_recode()
 
 
 if __name__ == '__main__':

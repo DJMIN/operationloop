@@ -1,8 +1,12 @@
 import os  # 用于文件操作
+
+import keyboard
 import win32con
 import win32api
 import sys
 import threading  # 由于键盘和鼠标事件的监听都是阻塞的,所以用两个线程实现
+import multiprocessing
+import queue
 import tkinter  # 绘制操作界面
 from tkinter import messagebox
 from PIL.Image import open as imread
@@ -13,7 +17,7 @@ from operationloop.uiapp.component import FrameGridBox
 from operationloop.core.command import CommandList
 from operationloop.core.command import SHORT_CUT_KEY
 
-IMG_PATH = r'K:\PycharmProjects\operationloop\operationloop\imgs\mouse_screen'
+IMG_PATH = r'./imgs/mouse_screen'
 all_tk = None
 S_WIDTH = 800
 S_HEIGHT = 500
@@ -26,9 +30,6 @@ def add_item(father, item, max_row_cnt=6):
         father.grid_col_idx = 0
         father.grid_row_idx += 1
     return item
-
-
-command_list = CommandList()
 
 
 class TKMain:
@@ -53,18 +54,55 @@ class TKMain:
         frame1 = FrameGridBox(self.top)
         self.l1 = add_item(frame1, tkinter.Label(frame1, text=f'按{SHORT_CUT_KEY} 开始/退出 录制，暂不支持键盘组合键'))
         self.b1 = add_item(frame1, tkinter.Button(frame1, text='录制', width=7, height=1, command=self.record_opt))
+        keyboard.hook_key(SHORT_CUT_KEY.lower(), self.start_recode_shortcut)
+
         self.b2 = add_item(frame1, tkinter.Button(frame1, text='执行', width=7, height=1, command=self.exec_op))
         self.l3 = add_item(frame1, tkinter.Label(frame1, text='请输入执行次数，默认为1次'))
+        self.search = tkinter.StringVar()
+        self.search_box = add_item(frame1, tkinter.Label(frame1, textvariable=self.search))
         self.count = tkinter.StringVar()
         self.isRunning = False
         self.e1 = add_item(frame1, tkinter.Entry(frame1, textvariable=self.count))
 
         self.show_img(IMG_PATH)
-        self.top.mainloop()
         self.canvas = tkinter.Frame(self.top)
         self.canvas.pack(side='bottom')
-
+        self.queue = queue.Queue()
+        self.pread, self.pwrite = multiprocessing.Pipe(duplex=False)
+        self.command_list = None
+        self.t = threading.Thread(target=self.hook_loop)
+        self.t.start()
+        self.top.bind('<<pyHookEvent>>', self.on_pyhook)
+        self.top.protocol("WM_DELETE_WINDOW", self.on_quit)
+        self.top.mainloop()
         # start_queue()
+
+    def start_recode_shortcut(self, event):
+        print(event.event_type)
+        if event.event_type == 'up':
+            self.record_opt()
+
+    def on_quit(self):
+        self.quit_fun()
+        self.top.destroy()
+
+    def on_pyhook(self, event):
+        if not self.queue.empty():
+            msg = self.queue.get()
+            # print(msg)
+            self.search.set(str(msg))
+
+    def quit_fun(self):
+        self.pwrite.send('quit')
+
+    def hook_loop(self):
+        while 1:
+            msg = self.pread.recv()
+            # print(msg)
+            if type(msg) is str and msg == 'quit':
+                print('exiting hook_loop')
+                break
+            self.top.event_generate('<<pyHookEvent>>', when='tail')
 
     def do_params(self, filepath):
         source_img = imread(filepath)
@@ -158,15 +196,17 @@ class TKMain:
 
         # # 等待线程结束,也就是等待用户按下esc
         if self.isRunning:
-            # self.top.iconify()  # 窗口隐藏
+            self.top.iconify()  # 窗口隐藏
+            self.command_list = CommandList(pwrite=self.pwrite, wqueue=self.queue)
             self.close_all_t()
             self.top.update()
             self.show_img(IMG_PATH)
-            command_list.recode(False)
+            self.command_list.recode(False)
         else:
-            self.top.deiconify()  # 窗口显现
-            command_list.stop_recode(use_ui=True)
-            command_list.dump()
+            # self.top.deiconify()  # 窗口显现
+            self.command_list.stop_recode(use_ui=True)
+            self.command_list.dump()
+            self.show_img(IMG_PATH)
 
     def exec_op(self):
         self.top.iconify()  # 窗口隐藏
@@ -179,7 +219,7 @@ class TKMain:
         if count.isdigit():
             for i in range(int(count)):
                 run_count = i
-                command_list.replay()
+                self.command_list.replay()
             print("执行成功%d/%d次!" % (run_count, int(count)))
             tkinter.messagebox.showinfo('提示', "执行成功%d/%d次!" % (run_count + 1, int(count)))
         else:
@@ -205,7 +245,8 @@ def main():  # 主函数
         win32api.MessageBox(0, f"{p_main}已在后台运行，请勿重复打开", f"{p_main}提示", win32con.MB_OK)
         exit(0)
 
-    TKMain()
+    main_ui = TKMain()
+
 
 
 if __name__ == "__main__":
