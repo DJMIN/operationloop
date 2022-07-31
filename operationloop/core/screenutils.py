@@ -138,7 +138,7 @@ class Screen:
                 continue
             elif timec > self.int_time * frame_num:
                 break
-            print(timec)
+            # print(timec)
             box = (x - limit_area, y - limit_area,
                    x + limit_area, y + limit_area)  # 将要裁剪的图片块距原图左边界距左边距离，上边界距上边距离，右边界距左边距离，下边界距上边的距离。
             rect_on_big = Image.frombytes("RGB", img.size, img.bgra, "raw", "BGRX").crop(box)

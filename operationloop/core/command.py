@@ -206,7 +206,8 @@ def format_path(path):
 class CommandList:
     def __init__(self, path='command.txt', pwrite=None, wqueue=None, skip_move=False):
         self.s_time = 0
-        self.path = format_path(path)
+        # self.path = format_path(path)
+        self.path = path
         self.data_list: typing.List[Command] = []
         self.start_time = time.time()
         self.is_running = False

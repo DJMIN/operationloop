@@ -7,3 +7,4 @@ keyboard
 mss
 mouse
 Pillow
+multiprocessing

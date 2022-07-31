@@ -6,10 +6,9 @@ import win32api
 import sys
 import threading  # 由于键盘和鼠标事件的监听都是阻塞的,所以用两个线程实现
 import queue
+import multiprocessing
 import tkinter  # 绘制操作界面
 from tkinter import messagebox
-from PIL.Image import open as imread
-from PIL.ImageTk import PhotoImage
 from win32com.client import GetObject
 from operationloop.core.imgutils import PlayGif
 from operationloop.uiapp.component import FrameGridBox
@@ -53,7 +52,7 @@ class TKMain:
         self.im = []
         frame1 = FrameGridBox(self.top)
         self.l1 = add_item(frame1, tkinter.Label(frame1, text=f'按{SHORT_CUT_KEY} 开始/退出 录制，暂不支持键盘组合键'))
-        self.b1 = add_item(frame1, tkinter.Button(frame1, text='录制', width=7, height=1, command=self.record_opt))
+        # self.b1 = add_item(frame1, tkinter.Button(frame1, text='录制', width=7, height=1, command=self.record_opt))
         keyboard.hook_key(SHORT_CUT_KEY.lower(), self.start_recode_shortcut)
 
         self.b2 = add_item(frame1, tkinter.Button(frame1, text='执行', width=7, height=1, command=self.exec_op))
@@ -120,7 +119,7 @@ class TKMain:
         self.tmp_l_g = []
         self.im = []
         for root, fs, fns in os.walk(filepaths):
-            fns.sort(key=lambda x: int(x.split('_')[0]))
+            fns.sort(key=lambda _x: int(_x.split('_')[0]))
             for fn in fns[-15:]:
                 filepath = os.path.join(root, fn)
                 if filepath.endswith('.gif'):
@@ -224,22 +223,17 @@ def main():  # 主函数
     # TODO 驱动级键盘输入和监听
     # TODO 鼠标拖动录制和模拟
     # TODO 键盘组合键
-    # for i in '123123123123123':
-    #     dd(i)
-    #     time.sleep(1)
     wmi = GetObject('winmgmts:')
     p_main = os.path.basename(sys.argv[0])
     print("start:", p_main)
-    processes = wmi.ExecQuery(f'Select * from Win32_Process where Name = "{p_main}"')
+    processes = wmi.ExecQuery('Select * fr'+f'om Win32_Process where Name = "{p_main}"')
     if len(processes) > 2:
         print(processes)
         win32api.MessageBox(0, f"{p_main}已在后台运行，请勿重复打开", f"{p_main}提示", win32con.MB_OK)
         exit(0)
 
-    main_ui = TKMain()
+    TKMain()
 
 
 if __name__ == "__main__":
-    import multiprocessing
-    multiprocessing.freeze_support()
     main()
