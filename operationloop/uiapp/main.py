@@ -1,13 +1,10 @@
 import os  # 用于文件操作
-import time
-
 import PIL
 import keyboard
 import win32con
 import win32api
 import sys
 import threading  # 由于键盘和鼠标事件的监听都是阻塞的,所以用两个线程实现
-import multiprocessing
 import queue
 import tkinter  # 绘制操作界面
 from tkinter import messagebox
@@ -48,6 +45,7 @@ class TKMain:
                           + str((self.top.winfo_screenwidth() - S_WIDTH) // 2) + '+'
                           + str((self.top.winfo_screenheight() - S_HEIGHT) // 2 - 18))
 
+        self.canvas = None
         self.col_idx = 0
         self.row_idx = 0
         self.tmp_l = []
@@ -88,7 +86,7 @@ class TKMain:
         self.quit_fun()
         self.top.destroy()
 
-    def on_pyhook(self, event):
+    def on_pyhook(self, _event):
         if not self.queue.empty():
             msg = self.queue.get()
             # print(msg)
@@ -108,23 +106,7 @@ class TKMain:
                 break
             self.top.event_generate('<<pyHookEvent>>', when='tail')
 
-    def do_params(self, filepath):
-        source_img = imread(filepath)
-        size = source_img.size
-        w, h = size
-        # 用来判断 刷新显示前 是否改变了图像大小
-        change_size = True
-        # 图片相对于源图的缩放比例
-        upper = 120 / h
-        if (w * upper) > 120:
-            upper = 120 / w
-        new_size = (int(w * upper), int(h * upper))
-        img = source_img.resize(new_size)
-        if len(self.im) > 17:
-            self.im = self.im[1:]
-        self.im.append((PhotoImage(img), filepath))
-
-    def do_params1(self, filepath):
+    def do_list(self, filepath):
         if len(self.im) > 14:
             self.im.pop(0)
         self.im.append(filepath)
@@ -142,7 +124,7 @@ class TKMain:
             for fn in fns[-15:]:
                 filepath = os.path.join(root, fn)
                 if filepath.endswith('.gif'):
-                    self.do_params1(filepath)
+                    self.do_list(filepath)
         row_len = 5
         self.tmp_l = []
         self.tmp_l_g = []

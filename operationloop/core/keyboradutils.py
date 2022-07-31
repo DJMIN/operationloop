@@ -8,8 +8,11 @@ import time
 # 用哪个就调用哪个的dll文件。
 import pyWinhook
 
-dd_dll = windll.LoadLibrary(r'K:\PycharmProjects\tgc\python_-mouse-click-master\DD94687.64.dll')
-time.sleep(1)
+dll_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), r'keyboard.64.dll')
+if not os.path.exists(dll_file_path):
+    dll_file_path = r'keyboard.64.dll'
+dd_dll = windll.LoadLibrary(dll_file_path)
+time.sleep(1.5)
 if dd_dll.DD_btn(0) != 1:  # DD Initialize
     print("dd_dll err")
     exit(0)
@@ -47,7 +50,10 @@ def init_mapping():
     # global SCAN_CODE_2_KEY
     global KEY_2_SCAN_CODE
     global KEY_2_DD
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scancode.csv'), 'r') as f_key:
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scancode.csv')
+    if not os.path.exists(file_path):
+        file_path = 'scancode.csv'
+    with open(file_path, 'r') as f_key:
         for line in f_key:
             if line.startswith('#'):
                 continue
