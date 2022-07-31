@@ -1,0 +1,9 @@
+pyWinhook
+pywin32
+imageio
+pynput
+numpy
+keyboard
+mss
+mouse
+Pillow
