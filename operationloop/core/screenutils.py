@@ -142,7 +142,7 @@ class Screen:
             fs = np.stack(screen_data, axis=0)
             rgb = '_'.join(str(it) for it in rgb)
             _rgb = '_'.join(str(it) for it in screen_data[0].getpixel((limit_area, limit_area)))
-            file_save_path = get_save_file_path(f'{filename}___{_rgb}___{rgb}.gif', file_path)
+            file_save_path = get_save_file_path(f'{filename}_{x}_{y}___{_rgb}___{rgb}.gif', file_path)
             imageio.v3.imwrite(file_save_path, fs, extension=".gif", duration=self.int_time)
             print(f'内存截图到文件耗时{time.time() - start:.3f}s {file_save_path}')
 

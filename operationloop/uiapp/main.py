@@ -23,7 +23,7 @@ S_WIDTH = 800
 S_HEIGHT = 500
 
 
-def add_item(father, item, max_row_cnt=6):
+def add_item(father, item, max_row_cnt=5):
     item.grid(column=father.grid_col_idx, row=father.grid_row_idx)
     father.grid_col_idx += 1
     if father.grid_col_idx == max_row_cnt:
@@ -59,10 +59,10 @@ class TKMain:
         self.b2 = add_item(frame1, tkinter.Button(frame1, text='执行', width=7, height=1, command=self.exec_op))
         self.l3 = add_item(frame1, tkinter.Label(frame1, text='请输入执行次数，默认为1次'))
         self.search = tkinter.StringVar()
-        self.search_box = add_item(frame1, tkinter.Label(frame1, textvariable=self.search))
         self.count = tkinter.StringVar()
         self.isRunning = False
         self.e1 = add_item(frame1, tkinter.Entry(frame1, textvariable=self.count))
+        self.search_box = add_item(frame1, tkinter.Label(frame1, textvariable=self.search))
 
         self.show_img(IMG_PATH)
         self.canvas = tkinter.Frame(self.top)
@@ -143,10 +143,13 @@ class TKMain:
         self.tmp_l_g = []
         for idx, im in enumerate(self.im):
             name = os.path.basename(im)
-            # idxx, x, y = name.split('__')[0].split('_')
-            # title = name.split('__')[1].split('.')[0].split('_', maxsplit=3)[-1]
-            # tit = f'{idx + 1}\n{idxx}: {title}\n{x} {y}'
-            tit = name.split('__')[0] + name.split('__')[1]
+            try:
+                idxx, x, y = name.split('___')[0].split('_')
+                title = name.split('___')[1].split('.')[0].split('_', maxsplit=3)[-1]
+                tit = f'{idx + 1}\n{idxx}: {title}\n{x} {y}'
+            except ValueError:
+                tit = name
+            # tit = name.split('___')[0] + name.split('___')[1]
             l_idx = tkinter.Label(self.canvas, text=tit)
             l_idx.grid(column=idx % row_len, row=idx // row_len * 2)
 
@@ -172,23 +175,23 @@ class TKMain:
         tkinter.messagebox.showinfo('提示', string)
 
     def close_all_t(self):
-        # while self.tmp_l_g:
-        #     t = self.tmp_l_g.pop()
-        #     print('del', t)
-        #     try:
-        #         t.close()
-        #         del t
-        #     except AttributeError:
-        #         pass
-        #
-        # while self.tmp_l:
-        #     t = self.tmp_l.pop()
-        #     print('del', t)
-        #     try:
-        #         t.destroy()
-        #         del t
-        #     except AttributeError:
-        #         pass
+        while self.tmp_l_g:
+            t = self.tmp_l_g.pop()
+            print('del', t)
+            try:
+                t.close()
+                del t
+            except AttributeError:
+                pass
+
+        while self.tmp_l:
+            t = self.tmp_l.pop()
+            print('del', t)
+            try:
+                t.destroy()
+                del t
+            except AttributeError:
+                pass
         self.canvas.destroy()
 
     def record_opt(self):
@@ -196,12 +199,12 @@ class TKMain:
 
         # # 等待线程结束,也就是等待用户按下esc
         if self.isRunning:
-            self.top.iconify()  # 窗口隐藏
-            self.command_list = CommandList(pwrite=self.pwrite, wqueue=self.queue)
+            # self.top.iconify()  # 窗口隐藏
+            self.command_list = CommandList(pwrite=self.pwrite, wqueue=self.queue, skip_move=False)
             self.close_all_t()
             self.top.update()
-            self.show_img(IMG_PATH)
             self.command_list.recode(False)
+            self.show_img(IMG_PATH)
         else:
             # self.top.deiconify()  # 窗口显现
             self.command_list.stop_recode(use_ui=True)

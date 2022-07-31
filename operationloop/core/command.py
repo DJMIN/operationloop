@@ -201,7 +201,7 @@ def format_path(path):
 
 
 class CommandList:
-    def __init__(self, path='command.txt', pwrite=None, wqueue=None):
+    def __init__(self, path='command.txt', pwrite=None, wqueue=None, skip_move=False):
         self.s_time = 0
         self.path = format_path(path)
         self.data_list: typing.List[Command] = []
@@ -211,7 +211,7 @@ class CommandList:
         self.time_offset_last = 0
         self.hook_listener = None
         # self.skip_move = True
-        self.skip_move = False
+        self.skip_move = skip_move
         self.pwrite = pwrite
         self.wqueue = wqueue
         self.last_time_img = 0
@@ -306,8 +306,7 @@ class CommandList:
         if event.Message not in [pyWinhook.HookConstants.WM_MOUSEMOVE]:
             if (time.time() - self.last_time_img) > 0.3:
                 self.last_time_img = time.time()
-                # rgb = get_screen_color(x, y)
-                rgb = ()
+                rgb = get_screen_color(x, y)
                 screen_listen.save_gif_async(
                 # put_queue(
                     f'{len(self.data_list) + 1}', x, y, file_path=MOUSE_SCREEN_SAVE_PATH, rgb=rgb)
