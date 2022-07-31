@@ -101,7 +101,7 @@ class Screen:
                 # title = get_active_window_attr()['title']
                 # r, g, b = get_screen_color(*mouse.get_position())
 
-                if self.history_screen_data.__len__() > 40:
+                if self.history_screen_data.__len__() > 100:
                     self.history_screen_data.pop(0)
                     # self.history_rgb_data.pop(0)
                     # self.history_title_data.pop(0)
@@ -127,13 +127,17 @@ class Screen:
     def save_gif_async(self, *args, **kwargs):
         self.cat_img_queue.put((args, kwargs))
 
-    def save_gif(self, filename, x, y, limit_area=60, frame_num=12, file_path='', rgb=(), time_click=0):
-        time.sleep(self.int_time*(frame_num-1))
+    def save_gif(self, filename, x, y, limit_area=60, frame_num=27, file_path='', rgb=(), time_click=0):
+        time.sleep(self.int_time * (frame_num - 1))
         start = time.time()
         screen_data = []
-        for imgd in self.history_screen_data[-frame_num+1:]:
+        for imgd in self.history_screen_data:
             img = imgd['img']
             timec = imgd['time'] - time_click
+            if timec < -self.int_time:
+                continue
+            elif timec > self.int_time * frame_num:
+                break
             print(timec)
             box = (x - limit_area, y - limit_area,
                    x + limit_area, y + limit_area)  # 将要裁剪的图片块距原图左边界距左边距离，上边界距上边距离，右边界距左边距离，下边界距上边的距离。
@@ -187,6 +191,8 @@ def put_queue(*args, **kwargs):
 
 screen_listen = Screen()
 screen_listen.start_all()
+
+
 # start_queue()
 
 

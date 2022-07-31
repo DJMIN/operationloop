@@ -72,7 +72,7 @@ class PlayGif(object):
                 _init()
                 canvas.image = canvas.create_image(60, 60, image=img)
             except Exception as ex:
-                print(1111111111111, type(ex), ex)
+                # print(1111111111111, type(ex), ex)
                 return
             if self.this_f_idx == 1:
                 canvas.text1 = canvas.create_text((60, 60), text=f"+", fill="#FFFF66")

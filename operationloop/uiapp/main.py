@@ -68,8 +68,8 @@ class TKMain:
         self.search_box.pack()
 
         self.show_img(IMG_PATH)
-        self.canvas = tkinter.Frame(self.top)
-        self.canvas.pack(side='bottom')
+        # self.canvas = tkinter.Frame(self.top)
+        # self.canvas.pack(side='bottom')
         self.queue = queue.Queue()
         self.pread, self.pwrite = multiprocessing.Pipe(duplex=False)
         self.command_list = None
@@ -81,7 +81,6 @@ class TKMain:
         # start_queue()
 
     def start_recode_shortcut(self, event):
-        print(event.event_type)
         if event.event_type == 'up':
             self.record_opt()
 
@@ -95,7 +94,7 @@ class TKMain:
             # print(msg)
             self.search.set(str(msg))
             if msg.startswith('M') and (' 513 ' in msg):
-                self.top.after(1600, self.show_img, IMG_PATH)
+                self.top.after(3000, self.show_img, IMG_PATH)
 
     def quit_fun(self):
         self.pwrite.send('quit')

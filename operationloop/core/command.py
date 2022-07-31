@@ -366,9 +366,9 @@ class CommandList:
             self.stop_recode()
         else:
             # if event.Message in [256, 260]:
-            #     print(f'{str(event.Message)}\t{event.ScanCode}\t{event.Key}')
+                # print(f'{str(event.Message)}\t{event.ScanCode}\t{str(event.Key)}')
             command = self.add_key_auto(
-                KeyboardEventType.KEY_UP if event.Message in [256, 260] else KeyboardEventType.KEY_DOWN,
+                (KeyboardEventType.KEY_UP if event.Message in [256, 260] else KeyboardEventType.KEY_DOWN),
                 event.Key, scan_code=event.ScanCode, windows=event.WindowName
             )
 
