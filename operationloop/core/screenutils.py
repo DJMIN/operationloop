@@ -85,7 +85,7 @@ class Screen:
     def start_all(self):
         self.t_run = threading.Thread(target=self.run_recode_screen, daemon=True)
         self.t_run.start()
-        for idx in range(4):
+        for idx in range(8):
             t = threading.Thread(target=self.run_save_gif_task, daemon=True)
             t.start()
             self.t_saves.append(t)
@@ -106,7 +106,7 @@ class Screen:
                     # self.history_rgb_data.pop(0)
                     # self.history_title_data.pop(0)
                     # self.history_point_data.pop(0)
-                self.history_screen_data.append(sct_img)
+                self.history_screen_data.append({"img": sct_img, "time": time.time()})
                 # self.history_rgb_data.append((r, g, b))
                 # self.history_title_data.append(title)
                 # self.history_point_data.append(mouse.get_position())
@@ -127,10 +127,14 @@ class Screen:
     def save_gif_async(self, *args, **kwargs):
         self.cat_img_queue.put((args, kwargs))
 
-    def save_gif(self, filename, x, y, limit_area=60, frame_num=40, file_path='', rgb=()):
+    def save_gif(self, filename, x, y, limit_area=60, frame_num=12, file_path='', rgb=(), time_click=0):
+        time.sleep(self.int_time*(frame_num-1))
         start = time.time()
         screen_data = []
-        for img in self.history_screen_data[-frame_num:]:
+        for imgd in self.history_screen_data[-frame_num+1:]:
+            img = imgd['img']
+            timec = imgd['time'] - time_click
+            print(timec)
             box = (x - limit_area, y - limit_area,
                    x + limit_area, y + limit_area)  # 将要裁剪的图片块距原图左边界距左边距离，上边界距上边距离，右边界距左边距离，下边界距上边的距离。
             rect_on_big = Image.frombytes("RGB", img.size, img.bgra, "raw", "BGRX").crop(box)

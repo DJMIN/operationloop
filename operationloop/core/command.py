@@ -17,7 +17,7 @@ SHORT_CUT_KEY = 'F12'
 
 
 class Command:
-    WINDOWS_FLAG = '|wiN|'
+    WINDOWS_FLAG = '    |wiN|: '
 
     def __init__(self, device='', params='', time_offset=0.0, windows=''):
         self.device = device
@@ -334,7 +334,8 @@ class CommandList:
                 rgb = get_screen_color(x, y)
                 screen_listen.save_gif_async(
                     # put_queue(
-                    f'{len(self.data_list) + 1}', x, y, file_path=MOUSE_SCREEN_SAVE_PATH, rgb=rgb)
+                    f'{len(self.data_list) + 1}', x, y, file_path=MOUSE_SCREEN_SAVE_PATH, rgb=rgb,
+                    time_click=time.time())
             else:
                 rgb = ()
             command = self.add_mouse_auto(
@@ -462,8 +463,8 @@ def eg_base_run():
 
 if __name__ == '__main__':
     # eg_base()
-    # eg_base_skip()
-    eg_base_run()
+    eg_base_skip()
+    # eg_base_run()
 
     # print(com_list)
     # print(repr(com_list))

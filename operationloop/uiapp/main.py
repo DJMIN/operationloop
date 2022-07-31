@@ -1,5 +1,7 @@
 import os  # 用于文件操作
+import time
 
+import PIL
 import keyboard
 import win32con
 import win32api
@@ -37,8 +39,8 @@ class TKMain:
         global all_tk
         all_tk = self
         self.top = tkinter.Tk()
-        self.top.title('鼠标宏录制工具')
-        self.top.wm_title('鼠标宏录制工具')
+        self.top.title('windows操作录制重放工具')
+        self.top.wm_title('windows操作录制重放工具')
         # 默认窗口包含标题栏
         self.top.overrideredirect(False)
         # 初始化窗口大小并自适应屏幕居中
@@ -62,7 +64,8 @@ class TKMain:
         self.count = tkinter.StringVar()
         self.isRunning = False
         self.e1 = add_item(frame1, tkinter.Entry(frame1, textvariable=self.count))
-        self.search_box = add_item(frame1, tkinter.Label(frame1, textvariable=self.search))
+        self.search_box = tkinter.Label(self.top, textvariable=self.search)
+        self.search_box.pack()
 
         self.show_img(IMG_PATH)
         self.canvas = tkinter.Frame(self.top)
@@ -91,6 +94,8 @@ class TKMain:
             msg = self.queue.get()
             # print(msg)
             self.search.set(str(msg))
+            if msg.startswith('M') and (' 513 ' in msg):
+                self.top.after(1600, self.show_img, IMG_PATH)
 
     def quit_fun(self):
         self.pwrite.send('quit')
@@ -126,6 +131,7 @@ class TKMain:
         self.im.append(filepath)
 
     def show_img(self, filepaths):
+        self.close_all_t()
         self.canvas = tkinter.Frame(self.top)
         self.canvas.pack(side='bottom')
         # return
@@ -155,9 +161,12 @@ class TKMain:
 
             l_img = tkinter.Canvas(self.canvas, height=120, width=120)
             # l_img.create_text((60, 60), text="+", fill="#FFF227")
-            gl = PlayGif(im)
-            gl.play(self.canvas, l_img)
-            self.tmp_l_g.append(gl)
+            try:
+                gl = PlayGif(im)
+                gl.play(self.canvas, l_img)
+                self.tmp_l_g.append(gl)
+            except PIL.UnidentifiedImageError:
+                print(f'文件损毁:{im}')
             l_img.grid(column=idx % row_len, row=idx // row_len * 2 + 1)
             self.tmp_l.append(l_img)
             self.tmp_l.append(l_idx)
@@ -177,22 +186,21 @@ class TKMain:
     def close_all_t(self):
         while self.tmp_l_g:
             t = self.tmp_l_g.pop()
-            print('del', t)
             try:
                 t.close()
                 del t
             except AttributeError:
                 pass
-
         while self.tmp_l:
             t = self.tmp_l.pop()
-            print('del', t)
             try:
                 t.destroy()
                 del t
             except AttributeError:
                 pass
-        self.canvas.destroy()
+        if getattr(self, "canvas", None):
+            self.canvas.destroy()
+            self.canvas = None
 
     def record_opt(self):
         self.isRunning = not self.isRunning
@@ -213,7 +221,6 @@ class TKMain:
 
     def exec_op(self):
         self.top.iconify()  # 窗口隐藏
-        path = 'commands.json'
         run_count = 0
         count = self.count.get()
         self.isRunning = True
@@ -249,7 +256,6 @@ def main():  # 主函数
         exit(0)
 
     main_ui = TKMain()
-
 
 
 if __name__ == "__main__":
